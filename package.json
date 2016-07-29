@@ -1,0 +1,29 @@
+{
+  "name": "dbust",
+  "version": "1.0.0",
+  "description": "Save the original name and the cache-busted name of your assets in a json file",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Marcel-Robitaille/dbust.git"
+  },
+  "keywords": [
+    "cache",
+    "rev"
+  ],
+  "author": "Marcel Robitaille <marcelrobitaille11@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Marcel-Robitaille/dbust/issues"
+  },
+  "homepage": "https://github.com/Marcel-Robitaille/dbust#readme",
+  "dependencies": {
+    "fs-promise": "0.5.0",
+    "proper-lockfile": "1.1.2",
+    "q": "1.4.1",
+    "through2": "2.0.1"
+  }
+}
