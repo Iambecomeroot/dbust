@@ -58,7 +58,6 @@ module.exports.webpack = function(){
       const chunk = chunks[i];
       const name  = `${chunk.name}.js`;
 
-      // Overwrite values
       files[name] = chunk.files[0];
     }
 
