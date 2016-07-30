@@ -1,7 +1,7 @@
 const q = require('q');
 const fs = require('fs-promise');
 const path = require('path');
-const locker = require('proper-lockfile')
+const locker = require('lockfile')
 const through = require('through2')
 
 module.exports = files => {
@@ -19,7 +19,7 @@ module.exports = files => {
     if(!exists) yield fs.writeFile(manifest, '{}', 'utf8')
 
     // Lock manifest file
-    yield q.nbind(locker.lock)(manifest, { retires: 10 })
+    yield q.nbind(locker.lock)(`${manifest}.lock`, { wait: 2000, retires: 100 })
 
     // Read old manifest
     data.old = yield fs.readFile(manifest, 'utf8')
@@ -39,7 +39,7 @@ module.exports = files => {
     }
 
     // Unlock file
-    yield q.nbind(locker.unlock)(manifest)
+    yield q.nbind(locker.unlock)(`${manifest}.lock`)
 
     // Update manifest
     yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
