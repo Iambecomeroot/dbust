@@ -1,25 +1,23 @@
-const q = require('q');
-const fs = require('fs-promise');
-const path = require('path');
+'use strict'
+
+const _ = require('lodash')
+const q = require('q')
+const fs = require('pn/fs')
+const path = require('path')
 const locker = require('lockfile')
 const through = require('through2')
 
-module.exports = files => {
+module.exports = (files) => {
   const manifest = path.join(path.dirname(module.parent.filename), 'manifest.json')
 
+
   // Parse generator
-  q.async(function*(){
+  q.async(function *(){
 
-    const data = {};
-
-    // Check if exists
-    exists = yield fs.exists(manifest)
-
-    // Create manifest if it does not exist
-    if(!exists) yield fs.writeFile(manifest, '{}', 'utf8')
+    const data = { new: {} }
 
     // Lock manifest file
-    yield q.nbind(locker.lock)(`${manifest}.lock`, { wait: 2000, retires: 100 })
+    ; yield q.nbind(locker.lock)(`${manifest}.lock`, { wait: 2000, retires: 200 })
 
     // Read old manifest
     data.old = yield fs.readFile(manifest, 'utf8')
@@ -28,24 +26,35 @@ module.exports = files => {
     data.old = JSON.parse(data.old)
 
     // Default values
-    data.new = data.old
+    _.assign(data.new, data.old)
+
+    const deletePromises = []
 
     // Parse object
     for(const file in files){
       data.new[file] = files[file]
 
       // If old file exists, delete it
-      if(data.old[file] !== data.new[file]) yield del(`./public/js/${data.old[name]}`)
+      if(data.old[file] && data.old[file] !== data.new[file]) deletePromises.push(fs.unlink(`./public/js/${data.old[file]}`))
     }
+    yield deletePromises
 
     // Unlock file
-    yield q.nbind(locker.unlock)(`${manifest}.lock`)
+    ; yield q.nbind(locker.unlock)(`${manifest}.lock`)
 
     // Update manifest
-    yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
+    ; yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
 
   })()
-    .catch(err => {throw err})
+    .catch(err => {
+      if(typeof err === 'string') err = new Error(err)
+
+      if(err.code === 'ENOENT' && path.basename(err.path) === 'manifest.json'){
+        return fs.writeFile(manifest, '{}', 'utf8').then(module.exports)
+      }
+
+      console.log(err)
+    })
     .done();
 }
 
