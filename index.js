@@ -1,23 +1,42 @@
 'use strict'
 
-const _ = require('lodash')
-const q = require('q')
 const fs = require('pn/fs')
 const path = require('path')
-const locker = require('lockfile')
+const co = require('co')
 const through = require('through2')
 
-module.exports = (files) => {
+const locker = {
+  lock: (file) => {
+    return new Promise((resolve, reject) => {
+      const timestamp = Date.now()
+      const lock = () => {
+        fs.stat(file).then((stat) => {
+          if(Date.now() > timestamp + 1000 * 10) return reject(new Error('Timeout while trying to lock file'))
+          setTimeout(lock, 500)
+        }).catch((err) => {
+          if(typeof err !== 'object') err = new Error(err)
+          if(err.code === 'ENOENT') return fs.writeFile(file, '').then(resolve)
+          reject(err)
+        })
+      }
+      lock()
+    })
+  },
+
+  unlock: (file) => fs.unlink(file)
+}
+
+module.exports = (files, cb, file) => {
   const manifest = path.join(path.dirname(module.parent.filename), 'manifest.json')
 
 
   // Parse generator
-  q.async(function *(){
+  co(function *(){
 
     const data = { new: {} }
 
     // Lock manifest file
-    ; yield q.nbind(locker.lock)(`${manifest}.lock`, { wait: 2000, retires: 200 })
+    ; yield locker.lock(`${manifest}.lock`)
 
     // Read old manifest
     data.old = yield fs.readFile(manifest, 'utf8')
@@ -28,34 +47,36 @@ module.exports = (files) => {
     // Default values
     _.assign(data.new, data.old)
 
-    const deletePromises = []
-
     // Parse object
     for(const file in files){
       data.new[file] = files[file]
 
       // If old file exists, delete it
-      if(data.old[file] && data.old[file] !== data.new[file]) deletePromises.push(fs.unlink(`./public/js/${data.old[file]}`))
+      if(data.old[file] && data.old[file] !== data.new[file]) fs.unlink(`./public/${path.extname(data.old[file]).substr(1)}/${data.old[file]}`).catch(() => {})
     }
-    yield deletePromises
-
-    // Unlock file
-    ; yield q.nbind(locker.unlock)(`${manifest}.lock`)
 
     // Update manifest
     ; yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
 
-  })()
-    .catch(err => {
-      if(typeof err === 'string') err = new Error(err)
-
-      if(err.code === 'ENOENT' && path.basename(err.path) === 'manifest.json'){
-        return fs.writeFile(manifest, '{}', 'utf8').then(module.exports)
-      }
-
-      console.log(err)
+    // Unlock file
+    locker.unlock(`${manifest}.lock`).catch((err) => {
+      if(err.code !== 'ENOENT') throw err
     })
-    .done();
+
+    if(cb) cb(null, file)
+
+  }).catch(err => {
+    if(typeof err === 'string') err = new Error(err)
+
+    if(err.code === 'ENOENT' && path.basename(err.path) === 'manifest.json'){
+      return fs.writeFile(manifest, '{}', 'utf8').then(() => module.exports(files, cb))
+    }
+
+    if(cb) cb(null, file)
+
+    console.log(err)
+    locker.unlock(`${manifest}.lock`)
+  })
 }
 
 module.exports.webpack = function(){
@@ -75,13 +96,11 @@ module.exports.webpack = function(){
 }
 
 module.exports.gulp = () => {
-  return through.obj((file, encoding, callback) => {
+  return through.obj((file, encoding, cb) => {
     const files = {}
 
     files[path.basename(file.revOrigPath)] = path.basename(file.path)
 
-    module.exports(files)
-
-    callback(null, file)
+    module.exports(files, cb, file)
   })
 }
