@@ -10,7 +10,7 @@ const locker = {
     return new Promise((resolve, reject) => {
       const timestamp = Date.now()
       const lock = () => {
-        fs.stat(file).then((stat) => {
+        fs.stat(file).then(() => {
           if(Date.now() > timestamp + 1000 * 10) return reject(new Error('Timeout while trying to lock file'))
           setTimeout(lock, 500)
         }).catch((err) => {
@@ -45,18 +45,22 @@ module.exports = (files, cb, file) => {
     data.old = JSON.parse(data.old)
 
     // Default values
-    _.assign(data.new, data.old)
+    Object.assign(data.new, data.old)
 
     // Parse object
     for(const file in files){
       data.new[file] = files[file]
 
       // If old file exists, delete it
-      if(data.old[file] && data.old[file] !== data.new[file]) fs.unlink(`./public/${path.extname(data.old[file]).substr(1)}/${data.old[file]}`).catch(() => {})
+      if(data.old[file] && data.old[file] !== data.new[file]){
+        const f = data.old[file]
+        fs.unlink(`./public/${path.extname(f).substr(1)}/${f}`).catch(() => {})
+        fs.unlink(`./public/${path.extname(f).substr(1)}/${f}.gz`).catch(() => {})
+      }
     }
 
     // Update manifest
-    ; yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
+    yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
 
     // Unlock file
     locker.unlock(`${manifest}.lock`).catch((err) => {
@@ -79,7 +83,7 @@ module.exports = (files, cb, file) => {
   })
 }
 
-module.exports.webpack = function(){
+module.exports.webpack = () => {
   this.plugin('done', stats => {
     const chunks = stats.compilation.chunks;
     const files  = {}
