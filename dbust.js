@@ -10,7 +10,7 @@ const dbust = (files, cb, file) => {
   const { manifest } = options
 
   // Parse generator
-  co(function *(){
+  return co(function *(){
 
     const data = { new: {} }
 
@@ -18,10 +18,14 @@ const dbust = (files, cb, file) => {
     ; yield locker.lock(`${manifest}.lock`)
 
     // Read old manifest
-    data.old = yield fs.readFile(manifest, 'utf8')
+    data.old = yield fs.readFile(manifest, 'utf8').catch(() => data.old = {})
 
     // Parse json
-    data.old = JSON.parse(data.old)
+    try{
+      data.old = JSON.parse(data.old)
+    }catch(err){
+      data.old = {}
+    }
 
     // Default values
     Object.assign(data.new, data.old)
@@ -33,8 +37,8 @@ const dbust = (files, cb, file) => {
       // If old file exists, delete it
       if(data.old[file] && data.old[file] !== data.new[file]){
         const f = data.old[file]
-        fs.unlink(`./public/${path.extname(f).substr(1)}/${f}`).catch(() => {})
-        fs.unlink(`./public/${path.extname(f).substr(1)}/${f}.gz`).catch(() => {})
+        fs.unlink(path.join(options.output, path.extname(f).substr(1), f)).catch(() => {})
+        fs.unlink(path.join(options.output, path.extname(f).substr(1), `${f}.gz`)).catch(() => {})
       }
     }
 
@@ -48,17 +52,6 @@ const dbust = (files, cb, file) => {
 
     if(cb) cb(null, file)
 
-  }).catch(err => {
-    if(typeof err === 'string') err = new Error(err)
-
-    if(err.code === 'ENOENT' && path.basename(err.path) === 'manifest.json'){
-      return fs.writeFile(manifest, '{}', 'utf8').then(() => module.exports(files, cb))
-    }
-
-    if(cb) cb(null, file)
-
-    console.error(err)
-    locker.unlock(`${manifest}.lock`)
   })
 }
 
@@ -68,7 +61,31 @@ module.exports = (services) => {
   return (_options) => {
     options = _options
 
-    if(!('manifest' in options)) options.manifest = path.join(options.base, 'manifest.json')
+    // Make sure options is object
+    if(!options || typeof options !== 'object') options = {}
+
+    // Make sure base exists
+    if(!('base' in options)){
+      if('manifest' in options && path.isAbsolute(options.manifest)){
+        options.base = path.dirname(options.manifest)
+      }else{
+        options.base = path.dirname(module.parent.filename)
+      }
+    }
+
+    // Make sure manifest exists
+    if(!('manifest' in options)) options.manifest = 'manifest.json'
+
+    // Make sure manifest path is absolute
+    if(!path.isAbsolute(options.manifest)) options.manifest = path.join(options.base, options.manifest)
+
+    // Make sure output exists
+    if(!('output' in options)) options.output = 'public'
+
+    // Make sure output path is absolute
+    if(!path.isAbsolute(options.output)) options.output = path.join(options.base, options.output)
+
+
 
     return dbust
   }

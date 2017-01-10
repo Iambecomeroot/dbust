@@ -1,10 +1,10 @@
 {
   "name": "dbust",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Save the original name and the cache-busted name of your assets in a json file",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/.bin/mocha"
   },
   "repository": {
     "type": "git",
