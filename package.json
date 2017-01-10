@@ -22,7 +22,10 @@
   "homepage": "https://github.com/Marcel-Robitaille/dbust#readme",
   "dependencies": {
     "co": "4.6.0",
-    "pn": "1.0.0",
-    "through2": "2.0.3"
+    "pn": "1.0.0"
+  },
+  "devDependencies": {
+    "mocha": "3.2.0",
+    "sinon": "1.17.7"
   }
 }
