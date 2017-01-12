@@ -1,5 +1,3 @@
-/* globals describe, it */
-
 'use strict'
 
 const assert = require('assert')
@@ -83,7 +81,7 @@ describe('dbust', () => {
     return errorTest()
   })
 
-  it('should default to base of parent module\'s directory', () => {
+  it('should default to base process.cwd()', () => {
     return dbust({})({})
       .then(() => {
         assert(services.fs.readFile.calledWith(path.join(__dirname, 'manifest.json'), 'utf8'))

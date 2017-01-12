@@ -5,9 +5,12 @@
 
 
 # dbust
-Pass it an object of hashed and original filenames and it saves them to a file. Plugins for [webpack](https://webpack.github.io/) and [gulp-rev](https://npmjs.com/package/gulp-rev) exist.
+Pass it an object of hashed and original filenames and it saves them to a file. It will also delete the old file when the hash changes. Plugins for [webpack](https://webpack.github.io/) and [gulp-rev](https://npmjs.com/package/gulp-rev) exist.
 
-## Basic usage
+## Intended usage
+This package is intended to be used with [gulp-dbust](https://www.npmjs.com/package/gulp-dbust) or [webpack-dbust](https://www.npmjs.com/package/webpack-dbust).
+
+## Direct usage
 
 ```js
 const dbust = require('dbust')
@@ -19,33 +22,7 @@ dbust({
 ```
 ```
 $ cat manifest.json
-{"file1": "file1-abc123","file2": "file2-xyz789"}
-```
-
-## Gulp plugin
-```js
-const gulp  = require('gulp')
-const rev   = require('gulp-rev')
-const dbust = require('dbust')
-
-gulp.task('default', () => {
-  return gulp.src('./source/js/main.js')
-    .pipe(rev())
-    .pipe(dbust.gulp())
-    .pipe(gulp.dest('./public/js/'))
-})
-```
-
-## Webpack plugin
-```js
-module.exports = {
-  entry: './source/js/main.js',
-  output: {
-    path: './public/js/',
-    filename: '[name]-[chunkname].js'
-  },
-  plugins: [ dbust.webpack ]
-}
+{"file1":"file1-abc123","file2":"file2-xyz789"}
 ```
 
 ## License

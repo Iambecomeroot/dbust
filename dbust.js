@@ -1,12 +1,13 @@
 'use strict'
 
 const path = require('path')
+const process = require('process')
 
 const co = require('co')
 
 let options, fs, locker
 
-const dbust = (files, cb, file) => {
+const dbust = (files) => {
   const { manifest } = options
 
   // Parse generator
@@ -50,8 +51,6 @@ const dbust = (files, cb, file) => {
       if(err.code !== 'ENOENT') throw err
     })
 
-    if(cb) cb(null, file)
-
   })
 }
 
@@ -69,7 +68,7 @@ module.exports = (services) => {
       if('manifest' in options && path.isAbsolute(options.manifest)){
         options.base = path.dirname(options.manifest)
       }else{
-        options.base = path.dirname(module.parent.filename)
+        options.base = process.cwd()
       }
     }
 
@@ -84,8 +83,6 @@ module.exports = (services) => {
 
     // Make sure output path is absolute
     if(!path.isAbsolute(options.output)) options.output = path.join(options.base, options.output)
-
-
 
     return dbust
   }
