@@ -13,7 +13,7 @@ This package is intended to be used with [gulp-dbust](https://www.npmjs.com/pack
 ## Direct usage
 
 ```js
-const dbust = require('dbust')
+const dbust = require('dbust')(options)
 
 dbust({
   file1: 'file1-abc123',
@@ -24,6 +24,25 @@ dbust({
 $ cat manifest.json
 {"file1":"file1-abc123","file2":"file2-xyz789"}
 ```
+
+## Options
+Defaults:
+```js
+{
+  base: process.cwd(),
+  manifest: base + '/manifest.json',
+  output: base + '/public/',
+}
+```
+
+### base
+Dirname of project. Defaults to `process.cwd()`.
+
+### manifest
+JSON file to store hashes in. Defaults to `base/manifest.json`.
+
+### output
+Used when deleting old files. Defaults to `base/public/`. For now, it is hard-coded to use the extension name as the sub-directory so js files are in `output/js` and css files are in `output/css`. If you want an option to change this, shoot me an email or something.
 
 ## License
 
