@@ -5,85 +5,80 @@ const process = require('process')
 
 const co = require('co')
 
-let options, fs, locker
+let _options = {}
+let fs
 
-const dbust = (files) => {
-  const { manifest } = options
+let manifest = {}
 
-  // Parse generator
-  return co(function *(){
+const set = obj => manifest = obj 
+const get = () => manifest
 
-    const data = { new: {} }
+const put = files => {
+  // files.forEach(file => manifest[file] = files[file])
+  Object.assign(manifest, files)
+}
 
-    // Lock manifest file
-    ; yield locker.lock(`${manifest}.lock`)
+const save = cb => {
+  return co(function * () {
+
+    if (typeof _options === 'undefined') options()
+
+    const manifestFile = _options.manifest
 
     // Read old manifest
-    data.old = yield fs.readFile(manifest, 'utf8').catch(() => data.old = {})
+    let data = yield fs.readFile(manifestFile, 'utf8')
+      .then(JSON.parse)
+      .catch(() => ({}))
 
-    // Parse json
-    try{
-      data.old = JSON.parse(data.old)
-    }catch(err){
-      data.old = {}
-    }
-
-    // Default values
-    Object.assign(data.new, data.old)
-
-    // Parse object
-    for(const file in files){
-      data.new[file] = files[file]
-
-      // If old file exists, delete it
-      if(data.old[file] && data.old[file] !== data.new[file]){
-        const f = data.old[file]
-        fs.unlink(path.join(options.output, path.extname(f).substr(1), f)).catch(() => {})
-        fs.unlink(path.join(options.output, path.extname(f).substr(1), `${f}.gz`)).catch(() => {})
-      }
-    }
+    Object.assign(data, manifest)
 
     // Update manifest
-    yield fs.writeFile(manifest, JSON.stringify(data.new), 'utf8')
+    yield fs.writeFile(manifestFile, JSON.stringify(data), 'utf8')
 
-    // Unlock file
-    locker.unlock(`${manifest}.lock`).catch((err) => {
-      if(err.code !== 'ENOENT') throw err
-    })
+    if (cb) cb()
+  }).catch(err => {
 
+    // If cb is set, use the cb to handle the error
+    if (typeof cb !== 'undefined') return cb(err)
+
+    // Otherwise, thow error so they can catch it from the promise
+    throw err
   })
 }
 
-module.exports = (services) => {
-  ({ fs, locker } = services)
+const options = newOptions => {
 
-  return (_options) => {
-    options = _options
+  Object.assign(_options, newOptions)
 
-    // Make sure options is object
-    if(!options || typeof options !== 'object') options = {}
-
-    // Make sure base exists
-    if(!('base' in options)){
-      if('manifest' in options && path.isAbsolute(options.manifest)){
-        options.base = path.dirname(options.manifest)
-      }else{
-        options.base = process.cwd()
-      }
+  // Make sure base exists
+  if (!('base' in _options)) {
+    if ('manifest' in _options && path.isAbsolute(_options.manifest)) {
+      _options.base = path.dirname(_options.manifest)
+    } else {
+      _options.base = process.cwd()
     }
+  }
 
-    // Make sure manifest exists
-    if(!('manifest' in options)) options.manifest = 'manifest.json'
+  // Make sure manifest exists
+  if (!('manifest' in _options)) _options.manifest = 'manifest.json'
 
-    // Make sure manifest path is absolute
-    if(!path.isAbsolute(options.manifest)) options.manifest = path.join(options.base, options.manifest)
+  // Make sure manifest path is absolute
+  if (!path.isAbsolute(_options.manifest)) _options.manifest = path.join(_options.base, _options.manifest)
+}
 
-    // Make sure output exists
-    if(!('output' in options)) options.output = 'public'
+const _getOptions = () => _options
+const _setOptions = newOptions => _options = newOptions
 
-    // Make sure output path is absolute
-    if(!path.isAbsolute(options.output)) options.output = path.join(options.base, options.output)
+module.exports = (services) => {
+  ({ fs } = services)
 
-    return dbust
+  return {
+    get,
+    set,
+    put,
+    save,
+    options,
+    _getOptions,
+    _setOptions,
   }
 }

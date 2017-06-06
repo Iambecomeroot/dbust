@@ -13,12 +13,18 @@ This package is intended to be used with [gulp-dbust](https://www.npmjs.com/pack
 ## Direct usage
 
 ```js
-const dbust = require('dbust')(options)
+const dbust = require('dbust')
+dbust.options(options)
 
-dbust({
+// Add object of files to cache
+// A cache is used to prevent multiple write to a manifest file in a short amount of time such as with gulp + webpack
+dbust.put({
   file1: 'file1-abc123',
   file2: 'file2-xyz789',
 })
+
+// Write cache to file
+dbust.save()
 ```
 ```
 $ cat manifest.json
@@ -31,7 +37,6 @@ Defaults:
 {
   base: process.cwd(),
   manifest: base + '/manifest.json',
-  output: base + '/public/',
 }
 ```
 
@@ -41,8 +46,16 @@ Dirname of project. Defaults to `process.cwd()`.
 ### manifest
 JSON file to store hashes in. Defaults to `base/manifest.json`.
 
-### output
-Used when deleting old files. Defaults to `base/public/`. For now, it is hard-coded to use the extension name as the sub-directory so js files are in `output/js` and css files are in `output/css`. If you want an option to change this, shoot me an email or something.
+### Upgrading to version 3.x.x
+Settings are done a little differently:
+```
+require('dbust')(options) => require('dbust'); dbust.options(options)
+```
+
+Version 3 only writes after all tasks are done to prevent weird stuff happening when two instances try to write the manifest at the same time.
+```
+dbust(files) => dbust.put(files); dbust.save()
+```
 
 ## License
 
