@@ -1,6 +1,6 @@
 {
   "name": "dbust",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Save the original name and the cache-busted name of your assets in a json file",
   "main": "index.js",
   "scripts": {
