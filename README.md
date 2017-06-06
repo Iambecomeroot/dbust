@@ -49,12 +49,17 @@ JSON file to store hashes in. Defaults to `base/manifest.json`.
 ### Upgrading to version 3.x.x
 Settings are done a little differently:
 ```
-require('dbust')(options) => require('dbust'); dbust.options(options)
+require('dbust')(options) ➔ require('dbust'); dbust.options(options)
 ```
 
 Version 3 only writes after all tasks are done to prevent weird stuff happening when two instances try to write the manifest at the same time.
 ```
-dbust(files) => dbust.put(files); dbust.save()
+dbust(files) ➔ dbust.put(files); dbust.save()
+```
+
+## Testing
+```
+npm test
 ```
 
 ## License
