@@ -19,7 +19,7 @@ const put = files => {
 }
 
 const save = cb => {
-  return co(function * () {
+  const promise = co(function * () {
 
     if (typeof _options === 'undefined') options()
 
@@ -35,15 +35,14 @@ const save = cb => {
     // Update manifest
     yield fs.writeFile(manifestFile, JSON.stringify(data), 'utf8')
 
-    if (cb) cb()
-  }).catch(err => {
-
-    // If cb is set, use the cb to handle the error
-    if (typeof cb !== 'undefined') return cb(err)
-
-    // Otherwise, thow error so they can catch it from the promise
-    throw err
+    if (typeof cb !== 'undefined') cb()
   })
+
+  // If no callback is provided, return the promise
+  if (typeof cb === 'undefined') return promise
+
+  // Otherwise, catch errors and pass them to callback
+  promise.catch(cb)
 }
 
 const options = newOptions => {
